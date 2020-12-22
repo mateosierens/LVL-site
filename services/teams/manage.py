@@ -29,8 +29,8 @@ def test():
 @cli.command()
 def seed_db():
     """Seeds the database."""
-    teams = "../../data/teams.csv"
-    clubs = "../../data/clubs.csv"
+    teams = "./data/teams.csv"
+    clubs = "./data/clubs.csv"
 
     # read from csv
     with open(clubs) as fp:

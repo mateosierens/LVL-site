@@ -1,4 +1,4 @@
-# services/users/project/tests/test_teams.py
+# services/teams/project/tests/test_teams.py
 
 import json
 import unittest

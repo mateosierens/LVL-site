@@ -1,4 +1,4 @@
-# services/matches/project/config.py
+# services/teams/project/config.py
 
 import os
 

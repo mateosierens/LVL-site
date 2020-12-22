@@ -1,4 +1,4 @@
-# services/teams/project/tests/test_config.py
+# services/matches/project/tests/test_config.py
 
 
 import os
