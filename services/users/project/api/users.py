@@ -7,11 +7,12 @@ from sqlalchemy import exc
 from project.api.models import User
 from project import db
 
-users_blueprint = Blueprint('users', __name__, template_folder='./templates')
+users_blueprint = Blueprint('users', __name__)
 
 # create user
 @users_blueprint.route('/users', methods=['POST'])
 def add_user():
+    """Create a user"""
     post_data = request.get_json()
     response_object = {
         'status': 'fail',
@@ -110,6 +111,7 @@ def update_user(user_id):
             user.email = email
             user.club = club
             user.admin = admin
+            db.session.commit()
             response_object = {
                 'status': 'success',
                 'message': 'User updated.'

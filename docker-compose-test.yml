@@ -28,3 +28,31 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
+
+  teams:
+    build:
+      context: ./services/teams
+      dockerfile: Dockerfile-dev
+    volumes:
+      - './services/teams:/usr/src/app'
+    ports:
+      - 5002:5000
+    environment:
+      - FLASK_ENV=testing
+      - APP_SETTINGS=project.config.TestingConfig
+      - DATABASE_URL=postgres://postgres:postgres@teams-db:5432/teams_dev
+      - DATABASE_TEST_URL=postgres://postgres:postgres@teams-db:5432/teams_test
+
+    depends_on:
+      - teams-db
+
+  teams-db:
+    build:
+      context: ./services/teams/project/db
+      dockerfile: Dockerfile
+    ports:
+      - 5434:5432
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+

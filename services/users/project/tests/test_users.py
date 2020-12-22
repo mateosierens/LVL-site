@@ -98,8 +98,6 @@ class TestUserService(BaseTestCase):
     def test_single_user(self):
         """Ensure get single user behaves correctly."""
         user = add_user('michael', 'strongpassword', 'michael@mherman.org', None, False)
-        db.session.add(user)
-        db.session.commit()
         with self.client:
             response = self.client.get(f'/users/{user.id}')
             data = json.loads(response.data.decode())
@@ -109,7 +107,7 @@ class TestUserService(BaseTestCase):
             self.assertIn('michael@mherman.org', data['data']['email'])
             self.assertEqual(None, data['data']['club'])
             self.assertEqual(False, data['data']['admin'])
-            self.assertIn('succes', data['status'])
+            self.assertIn('success', data['status'])
 
     def test_single_user_no_id(self):
         """Ensure error is thrown if an id is not provided"""
@@ -199,7 +197,7 @@ class TestUserService(BaseTestCase):
                 content_type='application/json',
             )
             data = json.loads(response.data.decode())
-            # self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.status_code, 200)
             self.assertIn('User updated', data['message'])
             self.assertIn('success', data['status'])
 
