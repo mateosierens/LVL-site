@@ -23,7 +23,7 @@ def create_app(script_info=None):
 	db.init_app(app)
 
 	# register blueprints
-	from project.api.teams import matches_blueprint
+	from project.api.matches import matches_blueprint
 	app.register_blueprint(matches_blueprint)
 
 	# shell context for flask cli
