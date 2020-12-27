@@ -37,7 +37,7 @@ class Referee(db.Model):
             'city': self.city,
             'phonenumber': self.phone_number,
             'email': self.email,
-            'birthdate': self.birth_date
+            'birthdate': self.birth_date.strftime('%Y-%m-%d')
         }
 
 class Division(db.Model):
@@ -102,8 +102,8 @@ class Match(db.Model):
             'id': self.id,
             'division': self.division_id,
             'matchweek': self.matchweek,
-            'date': self.date,
-            'time': self.time,
+            'date': self.date.strftime('%Y-%m-%d'),
+            'time': self.time.strftime('%H:%M:%S'),
             'hometeam': self.home_team_id,
             'awayteam': self.away_team_id,
             'goalshome': self.goals_home_team,
