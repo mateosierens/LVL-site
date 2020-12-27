@@ -86,7 +86,7 @@ class Match(db.Model):
     referee = db.Column(db.Integer, db.ForeignKey(Referee.id, ondelete='SET NULL'), default=None, nullable=True)
 
     def __init__(self, division_id, matchweek, date, time, home_team_id, away_team_id, goals_home_team,
-                 goals_away_team, status):
+                 goals_away_team, status, referee=None):
         self.division_id = division_id
         self.matchweek = matchweek
         self.date = date
@@ -96,6 +96,7 @@ class Match(db.Model):
         self.goals_home_team = goals_home_team
         self.goals_away_team = goals_away_team
         self.status = status
+        self.referee = referee
 
     def to_json(self):
         return {

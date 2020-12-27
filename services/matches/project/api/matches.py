@@ -10,6 +10,7 @@ from project import db
 
 matches_blueprint = Blueprint('matches', __name__)
 
+
 ### REFEREE ###
 # ping
 @matches_blueprint.route('/referees/ping', methods=['GET'])
@@ -18,6 +19,7 @@ def ping_referees():
         'status': 'success',
         'message': 'pong!'
     })
+
 
 # create
 @matches_blueprint.route('/referees', methods=['POST'])
@@ -47,6 +49,7 @@ def add_referee():
     except exc.IntegrityError as e:
         db.session.rollback()
         return jsonify(response_object), 400
+
 
 # read
 # get single referee (by ID)
@@ -80,6 +83,7 @@ def get_single_referee(referee_id):
     except ValueError:
         return jsonify(response_object), 404
 
+
 # get all referees
 @matches_blueprint.route('/referees', methods=['GET'])
 def get_all_referees():
@@ -91,6 +95,7 @@ def get_all_referees():
         }
     }
     return jsonify(response_object), 200
+
 
 # update
 @matches_blueprint.route('/referees/<referee_id>', methods=['PUT'])
@@ -130,6 +135,7 @@ def update_referee(referee_id):
         response_object['message'] = 'Invalid input data'
         return jsonify(response_object), 400
 
+
 # delete
 @matches_blueprint.route('/referees/<referee_id>', methods=['DELETE'])
 def delete_referee(referee_id):
@@ -157,6 +163,7 @@ def delete_referee(referee_id):
         response_object['message'] = 'Failed to delete referee'
         return jsonify(response_object), 400
 
+
 ### DIVISION ###
 # ping
 @matches_blueprint.route('/divisions/ping', methods=['GET'])
@@ -165,6 +172,7 @@ def ping_divisions():
         'status': 'success',
         'message': 'pong!'
     })
+
 
 # create
 @matches_blueprint.route('/divisions', methods=['POST'])
@@ -187,6 +195,7 @@ def add_division():
     except exc.IntegrityError as e:
         db.session.rollback()
         return jsonify(response_object), 400
+
 
 # read
 # get single division (by ID)
@@ -213,6 +222,7 @@ def get_single_division(division_id):
     except ValueError:
         return jsonify(response_object), 404
 
+
 # get all divisions
 @matches_blueprint.route('/divisions', methods=['GET'])
 def get_all_divisions():
@@ -224,6 +234,7 @@ def get_all_divisions():
         }
     }
     return jsonify(response_object), 200
+
 
 # update
 @matches_blueprint.route('/divisions/<division_id>', methods=['PUT'])
@@ -256,6 +267,7 @@ def update_division(division_id):
         response_object['message'] = 'Invalid input data'
         return jsonify(response_object), 400
 
+
 # delete
 @matches_blueprint.route('/divisions/<division_id>', methods=['DELETE'])
 def delete_division(division_id):
@@ -269,6 +281,11 @@ def delete_division(division_id):
         if not division:
             return jsonify(response_object), 404
         else:
+            # check if there is a match containing division id, if so return error
+            match = Match.query.filter_by(division_id=division_id).first()
+            if match:
+                response_object['message'] = 'Failed to delete division: division still has existing matches'
+                return jsonify(response_object), 400
             Division.query.filter_by(id=int(division_id)).delete()
             db.session.commit()
             response_object = {
@@ -283,6 +300,7 @@ def delete_division(division_id):
         response_object['message'] = 'Failed to delete division'
         return jsonify(response_object), 400
 
+
 ### STATUS ###
 # ping
 @matches_blueprint.route('/status/ping', methods=['GET'])
@@ -291,6 +309,7 @@ def ping_status():
         'status': 'success',
         'message': 'pong!'
     })
+
 
 # create
 @matches_blueprint.route('/status', methods=['POST'])
@@ -313,6 +332,7 @@ def add_status():
     except exc.IntegrityError as e:
         db.session.rollback()
         return jsonify(response_object), 400
+
 
 # read
 # get single status (by ID)
@@ -339,6 +359,7 @@ def get_single_status(status_id):
     except ValueError:
         return jsonify(response_object), 404
 
+
 # get all status
 @matches_blueprint.route('/status', methods=['GET'])
 def get_all_status():
@@ -350,6 +371,7 @@ def get_all_status():
         }
     }
     return jsonify(response_object), 200
+
 
 # update
 @matches_blueprint.route('/status/<status_id>', methods=['PUT'])
@@ -382,6 +404,7 @@ def update_status(status_id):
         response_object['message'] = 'Invalid input data'
         return jsonify(response_object), 400
 
+
 # delete
 @matches_blueprint.route('/status/<status_id>', methods=['DELETE'])
 def delete_status(status_id):
@@ -409,15 +432,181 @@ def delete_status(status_id):
         response_object['message'] = 'Failed to delete status'
         return jsonify(response_object), 400
 
+
 ### MATCH ###
-# TODO: ping
+# ping
+@matches_blueprint.route('/matches/ping', methods=['GET'])
+def ping_matches():
+    return jsonify({
+        'status': 'success',
+        'message': 'pong!'
+    })
 
-# TODO: create
 
-# TODO: read
+# create
+@matches_blueprint.route('/matches', methods=['POST'])
+def add_match():
+    """Create a match"""
+    post_data = request.get_json()
+    response_object = {
+        'status': 'fail',
+        'message': 'Invalid payload.'
+    }
+    if not post_data:
+        return jsonify(response_object), 400
+    division = post_data.get('division')
+    matchweek = post_data.get('matchweek')
+    date = post_data.get('date')
+    time = post_data.get('time')
+    hometeam = post_data.get('hometeam')
+    awayteam = post_data.get('awayteam')
+    goalshome = post_data.get('goalshome')
+    goalsaway = post_data.get('goalsaway')
+    status = post_data.get('status')
+    referee = None
+    if 'referee' in post_data:
+        referee = post_data.get('referee')
+    try:
+        if referee is not None:
+            toCheck = Match.query.filter_by(referee=referee).all()
+            for match in toCheck:
+                match_json = match.to_json()
+                if match_json['date'] == date and match_json['time'] == time:
+                    response_object['message'] = 'Referee double booked'
+                    return jsonify(response_object), 400
+        db.session.add(
+            Match(division, matchweek, date, time, hometeam, awayteam, goalshome, goalsaway, status, referee))
+        db.session.commit()
+        response_object['status'] = 'success'
+        response_object['message'] = 'Match successfully created!'
+        return jsonify(response_object), 201
+    except exc.IntegrityError as e:
+        db.session.rollback()
+        return jsonify(response_object), 400
 
-# TODO: update
 
-# TODO: delete
+# read
+# get single match (by ID)
+@matches_blueprint.route('/matches/<match_id>', methods=['GET'])
+def get_single_match(match_id):
+    """Get single match details"""
+    response_object = {
+        'status': 'fail',
+        'message': 'Match does not exist'
+    }
+    try:
+        match = Match.query.filter_by(id=int(match_id)).first()
+        if not match:
+            return jsonify(response_object), 404
+        else:
+            response_object = {
+                'status': 'success',
+                'data': {
+                    'id': match.id,
+                    'division': match.division_id,
+                    'matchweek': match.matchweek,
+                    'date': match.date.strftime('%Y-%m-%d'),
+                    'time': match.time.strftime('%H:%M:%S'),
+                    'hometeam': match.home_team_id,
+                    'awayteam': match.away_team_id,
+                    'goalshome': match.goals_home_team,
+                    'goalsaway': match.goals_away_team,
+                    'status': match.status,
+                    'referee': match.referee
+                }
+            }
+            return jsonify(response_object), 200
+    except ValueError:
+        return jsonify(response_object), 404
 
-# TODO: assign referee
+
+# get all matches
+@matches_blueprint.route('/matches', methods=['GET'])
+def get_all_matches():
+    """Get all matches"""
+    response_object = {
+        'status': 'success',
+        'data': {
+            'matches': [match.to_json() for match in Match.query.all()]
+        }
+    }
+    return jsonify(response_object), 200
+
+
+# update
+@matches_blueprint.route('/matches/<match_id>', methods=['PUT'])
+def update_match(match_id):
+    """Update single match details"""
+    data = request.get_json()
+    response_object = {
+        'status': 'fail',
+        'message': 'Match does not exist'
+    }
+    try:
+        match = Match.query.filter_by(id=int(match_id)).first()
+        if not match:
+            return jsonify(response_object), 404
+        else:
+            if not data:
+                response_object['message'] = 'Invalid payload.'
+                return jsonify(response_object), 400
+            referee = None
+            if 'referee' in data:
+                referee = data.get('referee')
+            if referee is not None:
+                toCheck = Match.query.filter_by(referee=referee).all()
+                for match in toCheck:
+                    match_json = match.to_json()
+                    if match_json['date'] == data.get('date') and match_json['time'] == data.get('time'):
+                        response_object['message'] = 'Referee double booked'
+                        return jsonify(response_object), 400
+            match.division = data.get('division')
+            match.matchweek = data.get('matchweek')
+            match.date = data.get('date')
+            match.time = data.get('time')
+            match.hometeam = data.get('hometeam')
+            match.awayteam = data.get('awayteam')
+            match.goalshome = data.get('goalshome')
+            match.goalsaway = data.get('goalsaway')
+            match.status = data.get('status')
+            match.referee = referee
+            db.session.commit()
+            response_object = {
+                'status': 'success',
+                'message': 'Match updated.'
+            }
+            return jsonify(response_object), 200
+    except ValueError:
+        return jsonify(response_object), 404
+    except exc.IntegrityError as e:
+        db.session.rollback()
+        response_object['message'] = 'Invalid input data'
+        return jsonify(response_object), 400
+
+
+# delete
+@matches_blueprint.route('/matches/<match_id>', methods=['DELETE'])
+def delete_match(match_id):
+    """Delete single match by ID"""
+    response_object = {
+        'status': 'fail',
+        'message': 'Match does not exist'
+    }
+    try:
+        match = Match.query.filter_by(id=int(match_id)).first()
+        if not match:
+            return jsonify(response_object), 404
+        else:
+            Match.query.filter_by(id=int(match_id)).delete()
+            db.session.commit()
+            response_object = {
+                'status': 'success',
+                'message': 'Match deleted'
+            }
+            return jsonify(response_object), 200
+    except ValueError:
+        return jsonify(response_object), 404
+    except exc.IntegrityError as e:
+        db.session.rollback()
+        response_object['message'] = 'Failed to delete match'
+        return jsonify(response_object), 400
