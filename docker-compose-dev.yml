@@ -83,6 +83,33 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
 
+  client:
+    build:
+      context: ./services/client
+      dockerfile: Dockerfile-dev
+    volumes:
+      - './services/client:/usr/src/app'
+    ports:
+      - 5004:5000
+    environment:
+      - FLASK_ENV=development
+      - APP_SETTINGS=project.config.DevelopmentConfig
+      - DATABASE_URL=postgres://postgres:postgres@client-db:5432/client_dev
+      - DATABASE_TEST_URL=postgres://postgres:postgres@client-db:5432/client_test
+
+    depends_on:
+      - client-db
+
+  client-db:
+    build:
+      context: ./services/client/project/db
+      dockerfile: Dockerfile
+    ports:
+      - 5436:5432
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+
   nginx:
     build:
       context: ./services/nginx
@@ -94,3 +121,4 @@ services:
       - users
       - teams
       - matches
+      - client
