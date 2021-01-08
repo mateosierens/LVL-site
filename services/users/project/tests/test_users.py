@@ -7,8 +7,8 @@ from project import db
 from project.api.models import User
 from project.tests.base import BaseTestCase
 
-def add_user(username, password, email, club, admin):
-    user = User(username=username, password=password, email=email, club=club, admin=admin)
+def add_user(username, password, email, club, admin, super_admin):
+    user = User(username=username, password=password, email=email, club=club, admin=admin, super_admin=super_admin)
     db.session.add(user)
     db.session.commit()
     return user
@@ -26,7 +26,8 @@ class TestUserService(BaseTestCase):
                     'password': 'herman',
                     'email': 'michael@mherman.org',
                     'club': None,
-                    'admin': False
+                    'admin': False,
+                    'super_admin': False
                 }),
                 content_type='application/json',
             )
@@ -73,7 +74,8 @@ class TestUserService(BaseTestCase):
                     'password': 'test123',
                     'email': 'michael@mherman.org',
                     'club': None,
-                    'admin': False
+                    'admin': False,
+                    'super_admin': False
                 }),
                 content_type='application/json',
             )
@@ -84,7 +86,8 @@ class TestUserService(BaseTestCase):
                     'password': 'test155',
                     'email': 'michael@mherman.org',
                     'club': None,
-                    'admin': False
+                    'admin': False,
+                    'super_admin': False
                 }),
                 content_type='application/json',
             )
@@ -97,7 +100,7 @@ class TestUserService(BaseTestCase):
 
     def test_single_user(self):
         """Ensure get single user behaves correctly."""
-        user = add_user('michael', 'strongpassword', 'michael@mherman.org', None, False)
+        user = add_user('michael', 'strongpassword', 'michael@mherman.org', None, False, False)
         with self.client:
             response = self.client.get(f'/users/{user.id}')
             data = json.loads(response.data.decode())
@@ -107,6 +110,7 @@ class TestUserService(BaseTestCase):
             self.assertIn('michael@mherman.org', data['data']['email'])
             self.assertEqual(None, data['data']['club'])
             self.assertEqual(False, data['data']['admin'])
+            self.assertEqual(False, data['data']['superadmin'])
             self.assertIn('success', data['status'])
 
     def test_single_user_no_id(self):
@@ -129,8 +133,8 @@ class TestUserService(BaseTestCase):
 
     def test_all_users(self):
         """Ensure get all users behaves correctly"""
-        add_user('michael', 'testpass1', 'michael@mherman.org', None, False)
-        add_user('fletcher', 'testpass2', 'fletcher@notreal.com', None, False)
+        add_user('michael', 'testpass1', 'michael@mherman.org', None, False, False)
+        add_user('fletcher', 'testpass2', 'fletcher@notreal.com', None, False, False)
         with self.client:
             response = self.client.get('/users')
             data = json.loads(response.data.decode())
@@ -141,23 +145,25 @@ class TestUserService(BaseTestCase):
             self.assertIn('michael@mherman.org', data['data']['users'][0]['email'])
             self.assertEqual(None, data['data']['users'][0]['club'])
             self.assertEqual(False, data['data']['users'][0]['admin'])
+            self.assertEqual(False, data['data']['users'][0]['superadmin'])
             self.assertIn('fletcher', data['data']['users'][1]['username'])
             self.assertIn('testpass2', data['data']['users'][1]['password'])
             self.assertIn('fletcher@notreal.com', data['data']['users'][1]['email'])
             self.assertEqual(None, data['data']['users'][1]['club'])
             self.assertEqual(False, data['data']['users'][1]['admin'])
+            self.assertEqual(False, data['data']['users'][1]['superadmin'])
             self.assertIn('success', data['status'])
 
     def test_delete_user(self):
         """Ensure a user is deleted when invoking the delete user function"""
-        user = add_user('michael', 'strongpassword', 'michael@mherman.org', None, False)
+        user = add_user('michael', 'strongpassword', 'michael@mherman.org', None, False, False)
         db.session.add(user)
         db.session.commit()
         with self.client:
             response = self.client.delete(f'/users/{user.id}')
             data = json.loads(response.data.decode())
             self.assertEqual(response.status_code, 200)
-            self.assertIn('succes', data['status'])
+            self.assertIn('success', data['status'])
             self.assertIn('User deleted', data['message'])
             self.assertNotIn(user, User.query.filter_by(id=int(user.id)))
 
@@ -181,7 +187,7 @@ class TestUserService(BaseTestCase):
 
     def test_update_user(self):
         """Ensure a user can be updated in the database"""
-        user = add_user('michael', 'strongpassword', 'michael@mherman.org', None, False)
+        user = add_user('michael', 'strongpassword', 'michael@mherman.org', None, False, False)
         db.session.add(user)
         db.session.commit()
         with self.client:
@@ -192,7 +198,8 @@ class TestUserService(BaseTestCase):
                     'password': 'herman',
                     'email': 'michael@mherman.com',
                     'club': None,
-                    'admin': False
+                    'admin': False,
+                    'superadmin': False
                 }),
                 content_type='application/json',
             )
@@ -203,7 +210,7 @@ class TestUserService(BaseTestCase):
 
     def test_update_user_invalid_json(self):
         """Ensure error is thrown if the JSON object is empty when trying to update user."""
-        user = add_user('michael', 'strongpassword', 'michael@mherman.org', None, False)
+        user = add_user('michael', 'strongpassword', 'michael@mherman.org', None, False, False)
         db.session.add(user)
         db.session.commit()
         with self.client:
@@ -219,7 +226,7 @@ class TestUserService(BaseTestCase):
 
     def test_update_user_duplicate_email(self):
         """Ensure error is thrown if the email already exists."""
-        user = add_user('michael', 'strongpassword', 'michael@mherman.org', None, False)
+        user = add_user('michael', 'strongpassword', 'michael@mherman.org', None, False, False)
         db.session.add(user)
         db.session.commit()
         with self.client:
@@ -230,7 +237,8 @@ class TestUserService(BaseTestCase):
                     'password': 'test123',
                     'email': 'michael@mherman.org',
                     'club': None,
-                    'admin': False
+                    'admin': False,
+                    'super_admin': False
                 }),
                 content_type='application/json',
             )
@@ -241,7 +249,8 @@ class TestUserService(BaseTestCase):
                     'password': 'test155',
                     'email': 'michael@mherman.org',
                     'club': None,
-                    'admin': False
+                    'admin': False,
+                    'super_admin': False
                 }),
                 content_type='application/json',
             )

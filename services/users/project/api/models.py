@@ -14,13 +14,15 @@ class User(db.Model):
     email = db.Column(db.String(128), nullable=False)
     club = db.Column(db.String(128), nullable=True)
     admin = db.Column(db.Boolean(), default=False, nullable=False)
+    super_admin = db.Column(db.Boolean(), default=False, nullable=False)
 
-    def __init__(self, username, password, email, club, admin):
+    def __init__(self, username, password, email, club, admin, super_admin):
         self.username = username
         self.password = password
         self.email = email
         self.club = club
         self.admin = admin
+        self.super_admin = admin
 
     def to_json(self):
         return {
@@ -29,5 +31,6 @@ class User(db.Model):
             'password': self.password,
             'email': self.email,
             'club': self.club,
-            'admin': self.admin
+            'admin': self.admin,
+            'superadmin': self.super_admin
         }

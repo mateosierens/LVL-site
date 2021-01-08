@@ -3,3 +3,5 @@ Flask-SQLAlchemy==2.3.2
 psycopg2==2.7.4
 Flask-Testing==0.8.0
 gunicorn==19.8.1
+Flask-JWT-Extended==3.25.0
+requests==2.22.0
