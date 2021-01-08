@@ -31,9 +31,9 @@ def get_identity_if_login():
 def home():
     user = get_identity_if_login()
     if user:
-        return render_template('home.html', login=True)
+        return render_template('home.html', login=True, admin=user['admin'])
     else:
-        return render_template('home.html', login=False)
+        return render_template('home.html', login=False, admin=False)
 
 @client_blueprint.route('/login', methods=['POST'])
 def login():
