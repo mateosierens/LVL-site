@@ -773,13 +773,16 @@ class TestMatchesService(BaseTestCase):
                     'time': '14:30:00',
                     'hometeam': 33,
                     'awayteam': 67,
-                    'goalshome': 0,
-                    'goalsaway': 0,
+                    'goalshome': 3,
+                    'goalsaway': 2,
                     'status': None,
                 }),
                 content_type='application/json',
             )
             data = json.loads(response.data.decode())
+            test_match = Match.query.filter_by(id=int(match.id)).first()
+            self.assertEqual(3, test_match.goalshome)
+            self.assertEqual(2, test_match.goalsaway)
             self.assertEqual(response.status_code, 200)
             self.assertIn('Match updated.', data['message'])
             self.assertIn('success', data['status'])

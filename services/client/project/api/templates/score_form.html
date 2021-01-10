@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<form action="/scores/{{ match }}" method="post">
+  <div class="form-group">
+    <label for="inputScore">Score</label>
+    <input type="text" name="score" class="form-control" id="inputScore" placeholder="Bijvoorbeeld: 4-3">
+  </div>
+  <button type="submit" class="btn btn-primary">Submit</button>
+</form>
+{% endblock %}

@@ -7,6 +7,11 @@
     <li class="nav-item">
       <a class="nav-link text-white" href="/competition/clubs">Clubs</a>
     </li>
+    {% if userclub is not none %}
+        <li class="nav-item">
+          <a class="nav-link text-white" href="/scores">Scores</a>
+        </li>
+    {% endif %}
     {% if admin %}
         <li class="nav-item">
           <a class="nav-link text-white" href="#">Admin</a>

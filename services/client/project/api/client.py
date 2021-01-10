@@ -3,6 +3,7 @@
 import requests
 import datetime
 from math import inf
+import json
 
 from flask import Blueprint, jsonify, request, render_template, redirect, url_for, make_response
 from sqlalchemy import exc
@@ -33,9 +34,9 @@ def get_identity_if_login():
 def home():
     user = get_identity_if_login()
     if user:
-        return render_template('home.html', login=True, admin=user['admin'])
+        return render_template('home.html', login=True, userclub=user['club'], admin=user['admin'])
     else:
-        return render_template('home.html', login=False, admin=False)
+        return render_template('home.html', login=False, userclub=None, admin=False)
 
 
 @client_blueprint.route('/login', methods=['POST'])
@@ -86,12 +87,12 @@ def refresh():
 
 @client_blueprint.route('/login', methods=['GET'])
 def get_login_page():
-    return render_template('login.html', badLogin=False)
+    return render_template('login.html', badLogin=False, userclub=None)
 
 
 @client_blueprint.route('/logout', methods=['GET'])
 def logout():
-    resp = make_response(render_template('logout_success.html'))
+    resp = make_response(render_template('logout_success.html', userclub=None))
     unset_jwt_cookies(resp)
     return resp, 200
 
@@ -104,9 +105,9 @@ def get_all_clubs():
 
     user = get_identity_if_login()
     if user:
-        return render_template('clubs.html', login=True, admin=user['admin'], data=data)
+        return render_template('clubs.html', login=True, userclub=user['club'], admin=user['admin'], data=data)
     else:
-        return render_template('clubs.html', login=False, admin=False, data=data)
+        return render_template('clubs.html', login=False, userclub=None, admin=False, data=data)
 
 
 @client_blueprint.route('/competition/clubs/<stamnumber>', methods=['GET'])
@@ -120,9 +121,39 @@ def get_club(stamnumber):
 
     user = get_identity_if_login()
     if user:
-        return render_template('club.html', login=True, admin=user['admin'], club=club, teams=teams)
+        return render_template('club.html', login=True, userclub=user['club'], club=club, admin=user['admin'],
+                               teams=teams)
     else:
-        return render_template('club.html', login=False, admin=False, club=club, teams=teams)
+        return render_template('club.html', login=False, userclub=None, club=club, admin=False, teams=teams)
+
+
+def getLastGames(matches, amount=3):
+    to_return = []
+    list_copy = matches[:]
+    for i in range(amount):
+        val = min(list_copy,
+                  key=lambda s: datetime.datetime.strptime(s['date'], "%Y-%m-%d").date() - datetime.date.today())
+        to_return.append(val)
+        list_copy.remove(val)
+    return to_return
+
+
+def create_win_loss_string(games, team):
+    string = ""
+    for game in games:
+        if game['goalshome'] > game['goalsaway']:
+            if team == game['hometeam']:
+                string += 'W'
+            else:
+                string += 'L'
+        elif game['goalshome'] == game['goalsaway']:
+            string += 'D'
+        else:
+            if team == game['hometeam']:
+                string += 'L'
+            else:
+                string += 'W'
+    return string
 
 
 @client_blueprint.route('/competition/teams/<team_id>', methods=['GET'])
@@ -135,11 +166,37 @@ def get_team(team_id):
     response = requests.get(f"http://teams:5000/clubs/{team['stamnumber']}")
     club = response.json()['data']
 
+    # make fixture for upcoming matches
+    # get all matches
+    response = requests.get("http://matches:5000/matches")
+    matches = response.json()['data']['matches']
+
+    upcoming_matches = []
+    today = datetime.date.today()
+    for match in matches:
+        date = datetime.datetime.strptime(match['date'], '%Y-%m-%d').date()
+        if date >= today and (match['hometeam'] == team['id'] or match['awayteam'] == team['id']):
+            upcoming_matches.append(match)
+    fixture = make_week_fixture(upcoming_matches)
+
+    team_matches = []
+    for match in matches:
+        if match['hometeam'] == team['id'] or match['awayteam'] == team['id']:
+            team_matches.append(match)
+
+    last_results = getLastGames(team_matches)
+    string = create_win_loss_string(last_results, team_id)
+
     user = get_identity_if_login()
     if user:
-        return render_template('team.html', login=True, admin=user['admin'], team=team, club=club)
+        return render_template('team.html', login=True, admin=user['admin'], userclub=user['club'], team=team,
+                               club=club,
+                               fixture=fixture,
+                               string=string)
     else:
-        return render_template('team.html', login=False, admin=False, team=team, club=club)
+        return render_template('team.html', login=False, admin=False, team=team, userclub=None, club=club,
+                               fixture=fixture,
+                               string=string)
 
 
 @client_blueprint.route('/competition/divisions', methods=['GET'])
@@ -150,9 +207,10 @@ def get_divisions():
 
     user = get_identity_if_login()
     if user:
-        return render_template('divisions.html', login=True, admin=user['admin'], divisions=divisions)
+        return render_template('divisions.html', login=True, userclub=user['club'], admin=user['admin'],
+                               divisions=divisions)
     else:
-        return render_template('divisions.html', login=False, admin=False, divisions=divisions)
+        return render_template('divisions.html', login=False, userclub=None, admin=False, divisions=divisions)
 
 
 def getTeamName(team_id):
@@ -262,9 +320,11 @@ def get_fixture_for_division(division_id):
 
     user = get_identity_if_login()
     if user:
-        return render_template('seasons.html', login=True, admin=user['admin'], seasons=seasons, division=division_id)
+        return render_template('seasons.html', login=True, userclub=user['club'], admin=user['admin'], seasons=seasons,
+                               division=division_id)
     else:
-        return render_template('seasons.html', login=False, admin=False, seasons=seasons, division=division_id)
+        return render_template('seasons.html', login=False, userclub=None, admin=False, seasons=seasons,
+                               division=division_id)
 
 
 @client_blueprint.route('/competition/divisions/<division_id>/<year0>-<year1>', methods=['GET'])
@@ -342,42 +402,15 @@ def get_fixture_for_division_season(division_id, year0, year1):
 
     user = get_identity_if_login()
     if user:
-        return render_template('league.html', login=True, admin=user['admin'], league_table=league_table, year=year,
+        return render_template('league.html', login=True, userclub=user['club'], admin=user['admin'],
+                               league_table=league_table, year=year,
                                fixture=fixture, clubs=clubs, best_attack=best_attack, best_defense=best_defense,
                                cleanest_sheet=cleanest_sheet)
     else:
-        return render_template('league.html', login=False, admin=False, league_table=league_table, year=year,
+        return render_template('league.html', login=False, userclub=None, admin=False, league_table=league_table,
+                               year=year,
                                fixture=fixture, clubs=clubs, best_attack=best_attack, best_defense=best_defense,
                                cleanest_sheet=cleanest_sheet)
-
-
-def getLastGames(matches, amount=3):
-    to_return = []
-    list_copy = matches[:]
-    for i in range(amount):
-        val = min(list_copy,
-                  key=lambda s: datetime.datetime.strptime(s['date'], "%Y-%m-%d").date() - datetime.date.today())
-        to_return.append(val)
-        list_copy.remove(val)
-    return to_return
-
-
-def create_win_loss_string(games, match):
-    string = ""
-    for game in games:
-        if game['hometeam'] > game['awayteam']:
-            if match['hometeam'] == game['hometeam']:
-                string += 'W'
-            else:
-                string += 'L'
-        elif game['hometeam'] == game['awayteam']:
-            string += 'D'
-        else:
-            if match['hometeam'] == game['hometeam']:
-                string += 'L'
-            else:
-                string += 'W'
-    return string
 
 
 @client_blueprint.route('/competition/matches/<match_id>', methods=['GET'])
@@ -428,8 +461,8 @@ def get_specific_fixture(match_id):
                             i['hometeam'] == match['awayteam'] or i['awayteam'] == match['awayteam']]
         ht_last_games = getLastGames(hometeam_matches, 5)
         at_last_games = getLastGames(awayteam_matches, 5)
-        ht_scores_string = create_win_loss_string(ht_last_games, match)
-        at_scores_string = create_win_loss_string(at_last_games, match)
+        ht_scores_string = create_win_loss_string(ht_last_games, match['hometeam'])
+        at_scores_string = create_win_loss_string(at_last_games, match['awayteam'])
 
     # check if match is in 7 days, if so include weather report
     week = None
@@ -450,10 +483,76 @@ def get_specific_fixture(match_id):
 
     user = get_identity_if_login()
     if user:
-        return render_template('fixture.html', login=True, admin=user['admin'], match=match, stats=stats,
+        return render_template('fixture.html', login=True, userclub=user['club'], admin=user['admin'], match=match,
+                               stats=stats,
                                times_played=times_played, wins_awayteam=wins_awayteam, wins_hometeam=wins_hometeam,
-                               last_games=last_games, ht_scores=ht_scores_string, at_scores=at_scores_string, forecast=week)
+                               last_games=last_games, ht_scores=ht_scores_string, at_scores=at_scores_string,
+                               forecast=week)
     else:
-        return render_template('fixture.html', login=False, admin=False, match=match, stats=stats,
+        return render_template('fixture.html', login=False, userclub=None,
+                               admin=False, match=match, stats=stats,
                                times_played=times_played, wins_awayteam=wins_awayteam, wins_hometeam=wins_hometeam,
-                               last_games=last_games, ht_scores=ht_scores_string, at_scores=at_scores_string, forecast=week)
+                               last_games=last_games, ht_scores=ht_scores_string, at_scores=at_scores_string,
+                               forecast=week)
+
+
+@client_blueprint.route('/scores', methods=['GET'])
+@jwt_required
+def get_scores():
+    user = get_identity_if_login()
+    club = user['club']
+
+    # get all teams of club
+    response = requests.get(f'http://teams:5000/teams')
+    teams = response.json()['data']['teams']
+
+    team_ids = []
+    for team in teams:
+        if team['stamnumber'] == int(club):
+            team_ids.append(team['id'])
+
+    response = requests.get("http://matches:5000/matches")
+    matches = response.json()['data']['matches']
+
+    # user can edit all his home games
+    to_show = []
+    for match in matches:
+        team_id = match['hometeam']
+        if team_id in team_ids:
+            to_show.append(match)
+
+    for game in to_show:
+        game['hometeam'] = getTeamName(game['hometeam'])
+        game['awayteam'] = getTeamName(game['awayteam'])
+        game['status'] = getStatus(match['status']) if match['status'] is not None else ''
+        game['referee'] = game['referee'] if game['referee'] is not None else ''
+        game['result'] = str(game['goalshome']) + ' - ' + str(game['goalsaway']) if game['goalshome'] is not None or \
+                                                                                    game[
+                                                                                        'goalsaway'] is not None else ''
+
+    to_show.sort(key=lambda match: match['date'])
+
+    return render_template('scores.html', login=True, userclub=user['club'], admin=user['admin'], matches=to_show)
+
+@client_blueprint.route('/scores/<match_id>', methods=['GET'])
+def score_form(match_id):
+    user = get_identity_if_login()
+    return render_template('score_form.html', login=True, userclub=user['club'], admin=user['admin'], match=match_id)
+
+
+@client_blueprint.route('/scores/<match_id>', methods=['POST'])
+@jwt_required
+def post_scores(match_id):
+    score = request.form.get('score')
+    score = score.split('-')
+    response = requests.get(f'http://matches:5000/matches/{match_id}')
+    match = response.json()['data']
+
+    match['goalshome'] = int(score[0])
+    match['goalsaway'] = int(score[1])
+
+    response = requests.put(f'http://matches:5000/matches/{match_id}', data=match)
+
+    user = get_identity_if_login()
+    return render_template('successful_score_update.html', login=True, userclub=user['club'], admin=user['admin'])
+

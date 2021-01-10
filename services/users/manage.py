@@ -36,7 +36,7 @@ def seed_db():
     db.session.add(User(username='michaelherman', password='123456', email="michael@mherman.org", club=None, admin=True,
                         super_admin=False))
     db.session.add(
-        User(username='test', password='test', email="test@test.org", club=None, admin=True, super_admin=True))
+        User(username='test', password='test', email="test@test.org", club=13, admin=True, super_admin=True))
     db.session.commit()
 
 

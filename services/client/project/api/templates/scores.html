@@ -1,24 +1,11 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="card">
-  <div class="card-header">
-      {% if team.suffix != None %}
-            <h1>{{ club.name }} : Team {{ team.suffix }}</h1>
-        {% else %}
-            <h1>{{ club.name }} : Hoofdteam </h1>
-        {% endif %}
-  </div>
-  <div class="card-body">
-    <h3 class="card-title">Info</h3>
-    <p class="card-text">{{ team.color }}</p>
-    <br>
-    <h3 class="card-title">Laatste resultaten</h3>
-    <p class="card-text">{{ string }}</p>
-    <br>
-    <h3 class="card-title">Fixture</h3>
+
+<div class="container-fluid">
+  <div class="pt-4 w-75 mx-auto col">
       {% set last_value = {'matchweek': 0} %}
-      {% for fixture in fixture %}
+      {% for fixture in matches %}
         {% if last_value.key != fixture.matchweek %}
           {% if last_value.key != 0 %}
                 </tbody>
@@ -47,8 +34,8 @@
               <td>{{ fixture.awayteam }}</td>
               <td>{{ fixture.status }}</td>
               <td>{{ fixture.referee }}</td>
-              <td>{{ fixture.result }}</td>
-              <td><a class="btn btn-primary btn-sm" href="/competition/matches/{{ fixture.id }}" role="button">Meer info</a></td>
+                <td>{{ fixture.result }}</td>
+              <td><a class="btn btn-primary btn-sm" href="/scores/{{ fixture.id }}" role="button">Verander score</a></td>
             </tr>
         {% set temp = last_value.update({'key': fixture.matchweek}) %}
         {% endfor %}
@@ -56,4 +43,5 @@
     </table>
   </div>
 </div>
+
 {% endblock %}

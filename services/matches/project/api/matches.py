@@ -8,6 +8,8 @@ from sqlalchemy.sql import func
 from project.api.models import Referee, Status, Division, Match
 from project import db
 
+import datetime
+
 matches_blueprint = Blueprint('matches', __name__)
 
 
@@ -537,7 +539,7 @@ def get_all_matches():
 @matches_blueprint.route('/matches/<match_id>', methods=['PUT'])
 def update_match(match_id):
     """Update single match details"""
-    data = request.get_json()
+    data = request.form
     response_object = {
         'status': 'fail',
         'message': 'Match does not exist'
@@ -562,12 +564,12 @@ def update_match(match_id):
                         return jsonify(response_object), 400
             match.division = data.get('division')
             match.matchweek = data.get('matchweek')
-            match.date = data.get('date')
-            match.time = data.get('time')
+            match.date = datetime.datetime.strptime(data.get('date'), '%Y-%m-%d')
+            match.time = datetime.datetime.strptime(data.get('time'), '%H:%M:%S')
             match.hometeam = data.get('hometeam')
             match.awayteam = data.get('awayteam')
-            match.goalshome = data.get('goalshome')
-            match.goalsaway = data.get('goalsaway')
+            match.goals_home_team = int(data.get('goalshome'))
+            match.goals_away_team = int(data.get('goalsaway'))
             match.status = data.get('status')
             match.referee = referee
             db.session.commit()
