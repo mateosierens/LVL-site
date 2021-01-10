@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% if error %}
+  <div class="alert alert-danger" role="alert">
+      Something went wrong.
+  </div>
+{% endif %}
+
+{% block content %}
+{% if status %}
+    <div class="container-fluid">
+      <div class="pt-4 w-75 mx-auto col">
+          <form method="post">
+              <div class="col">
+                  <div class="row">
+                      <label for="inputStatus" class="col-sm-2 col-form-label">Status</label>
+                  </div>
+                  <div class="row">
+                        <input type="text" class="form-control" name="status" id="inputStatus" placeholder="status">
+                  </div>
+                  <div class="row">
+                    <div class="col-sm-10">
+                      <button type="submit" class="btn btn-primary">Voeg toe</button>
+                    </div>
+                  </div>
+              </div>
+          </form>
+      </div>
+    </div>
+{% else %}
+{% endif %}
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block content %}
+{% if status %}
+    <div class="container-fluid">
+      <div class="pt-4 w-75 mx-auto col">
+          <div class="row">
+              <a href="/admin/status/add" class="btn btn-primary float-right buttonBlue">Add status</a>
+          </div>
+            {% for s in all_status %}
+          <div class="form-group row">
+              <div class="col">
+                  <h3>{{ s.statusname }}</h3>
+              </div>
+              <div class="col">
+                  <a href="/admin/status/{{ s.id }}" class="btn btn-primary float-right buttonBlue">Edit</a>
+                <a href="/admin/status/{{ s.id }}/delete" class="btn btn-primary float-right buttonRed">Delete</a>
+              </div>
+          </div>
+            {% endfor %}
+      </div>
+    </div>
+{% else %}
+{% endif %}
+{% endblock %}

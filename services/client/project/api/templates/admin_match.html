@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+{% if error %}
+  <div class="alert alert-danger" role="alert">
+      Something went wrong.
+  </div>
+{% endif %}
+
+<div class="container-fluid">
+  <div class="pt-4 w-75 mx-auto col">
+    <form method="post">
+      <div class="form-group row">
+        <label for="inputDivisie" class="col-sm-2 col-form-label">Divisie</label>
+        <div class="col-sm-10">
+          <input type="text" class="form-control" name="divisie" id="inputDivisie" value="{{ match.division }}">
+        </div>
+      </div>
+        <div class="form-group row">
+        <label for="inputMatchweek" class="col-sm-2 col-form-label">Matchweek</label>
+        <div class="col-sm-10">
+          <input type="text" class="form-control" name="matchweek" id="inputMatchweek" value="{{ match.matchweek }}">
+        </div>
+      </div>
+        <div class="form-group row">
+        <label for="inputDatum" class="col-sm-2 col-form-label">Datum</label>
+        <div class="col-sm-10">
+          <input type="text" class="form-control" name="datum" id="inputDatum" value="{{ match.date }}">
+        </div>
+      </div>
+        <div class="form-group row">
+        <label for="inputTijd" class="col-sm-2 col-form-label">Tijd</label>
+        <div class="col-sm-10">
+          <input type="text" class="form-control" name="tijd" id="inputTijd" value="{{ match.time }}">
+        </div>
+      </div>
+        <div class="form-group row">
+        <label for="inputThuisploeg" class="col-sm-2 col-form-label">Thuisploeg</label>
+        <div class="col-sm-10">
+          <input type="text" class="form-control" name="thuisploeg" id="inputThuisploeg" value="{{ match.hometeam }}">
+        </div>
+      </div>
+      <div class="form-group row">
+        <label for="inputUitploeg" class="col-sm-2 col-form-label">Uitploeg</label>
+        <div class="col-sm-10">
+          <input type="text" class="form-control" name="uitploeg" id="inputUitploeg" value="{{ match.awayteam }}">
+        </div>
+        </div>
+        <div class="form-group row">
+          <label for="inputStatus" class="col-sm-2 col-form-label">Status</label>
+          <div class="col-sm-10">
+            <input type="text" class="form-control" name="status" id="inputStatus" value="{{ match.status }}">
+          </div>
+        </div>
+      <div class="form-group row">
+        <div class="col-sm-10">
+          <button type="submit" class="btn btn-primary">Save changes</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}

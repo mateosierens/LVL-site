@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{% block content %}
+{% if admin %}
+    <div class="pt-4 container">
+        <div class="col-md">
+            <div class="list-group">
+                {% for entity in entities %}
+                    {% if entity != "Users" %}
+                        <a href="/admin/{{entity.lower()}}" class="list-group-item list-group-item-action">{{ entity }}</a>
+                    {% elif entity == "Users" and superadmin %}
+                        <a href="/admin/{{entity.lower()}}" class="list-group-item list-group-item-action">{{ entity }}</a>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}

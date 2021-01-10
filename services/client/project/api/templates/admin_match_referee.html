@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+{% if error %}
+    <div class="alert alert-danger" role="alert">
+        Something went wrong.
+    </div>
+{% endif %}
+
+{% if double_booked %}
+    <div class="alert alert-danger" role="alert">
+        Referee is already booked for a match at that time.
+    </div>
+{% endif %}
+<div class="container-fluid">
+  <div class="pt-4 w-75 mx-auto col">
+    <form method="get">
+        <div class="form-group">
+          <label for="referee">Select Referee:</label>
+          <select class="form-control" id="referee" name="referee">
+            <option hidden disabled selected value> -- select an option -- </option>
+            {% for ref in referees %}
+              <option>{{ ref.firstname }} {{ ref.lastname }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -524,7 +524,7 @@ def get_scores():
     for game in to_show:
         game['hometeam'] = getTeamName(game['hometeam'])
         game['awayteam'] = getTeamName(game['awayteam'])
-        game['status'] = getStatus(match['status']) if match['status'] is not None else ''
+        game['status'] = getStatus(game['status']) if game['status'] is not None else ''
         game['referee'] = game['referee'] if game['referee'] is not None else ''
         game['result'] = str(game['goalshome']) + ' - ' + str(game['goalsaway']) if game['goalshome'] is not None or \
                                                                                     game[
@@ -533,6 +533,7 @@ def get_scores():
     to_show.sort(key=lambda match: match['date'])
 
     return render_template('scores.html', login=True, userclub=user['club'], admin=user['admin'], matches=to_show)
+
 
 @client_blueprint.route('/scores/<match_id>', methods=['GET'])
 def score_form(match_id):
@@ -556,3 +557,189 @@ def post_scores(match_id):
     user = get_identity_if_login()
     return render_template('successful_score_update.html', login=True, userclub=user['club'], admin=user['admin'])
 
+
+@client_blueprint.route('/admin', methods=['GET'])
+@jwt_required
+def get_admin():
+    user = get_identity_if_login()
+    entities = ['Users', 'Matches', 'Referees', 'Divisions', 'Status', 'Teams', 'Clubs']
+    return render_template('admin_selection.html', login=True, userclub=user['club'], admin=user['admin'],
+                           superadmin=user['superadmin'], entities=entities)
+
+
+@client_blueprint.route('/admin/matches', methods=['GET'])
+@jwt_required
+def matches_admin():
+    response = requests.get("http://matches:5000/matches")
+    matches = response.json()['data']['matches']
+
+    # # show clean representation of matches
+    # for game in matches:
+    #     game['hometeam'] = getTeamName(game['hometeam'])
+    #     game['awayteam'] = getTeamName(game['awayteam'])
+    #     game['status'] = getStatus(game['status']) if game['status'] is not None else ''
+    #     game['referee'] = game['referee'] if game['referee'] is not None else ''
+    #     game['result'] = str(game['goalshome']) + ' - ' + str(game['goalsaway']) if game['goalshome'] is not None or \
+    #                                                                                 game[
+    #                                                                                     'goalsaway'] is not None else ''
+
+    user = get_identity_if_login()
+    return render_template('admin_matches.html', login=True, userclub=user['club'], admin=user['admin'],
+                           matches=matches)
+
+
+def teamToID(team_name):
+    response = requests.get(f'http://teams:5000/teams')
+    teams = response.json()['data']['teams']
+
+    response = requests.get(f'http://teams:5000/clubs')
+    clubs = response.json()['data']['clubs']
+
+    stamnumber = -1
+    for club in clubs:
+        if team_name == club['name']:
+            stamnumber = club['stamnumber']
+
+    for team in teams:
+        if stamnumber == team['stamnumber']:
+            return team['id']
+
+
+def statusToID(status_name):
+    if status_name == '':
+        return None
+    else:
+        response = requests.get(f'http://matches:5000/status')
+        status = response.json()['data']['status']
+
+        for s in status:
+            if s['statusname'] == status_name:
+                return s['id']
+
+
+@client_blueprint.route('/admin/matches/<match_id>', methods=['GET', 'POST'])
+@jwt_required
+def edit_match(match_id):
+    response = requests.get(f'http://matches:5000/matches/{match_id}')
+    match = response.json()['data']
+    user = get_identity_if_login()
+    if request.method == 'GET':
+
+        match['hometeam'] = getTeamName(match['hometeam'])
+        match['awayteam'] = getTeamName(match['awayteam'])
+        match['status'] = getStatus(match['status']) if match['status'] is not None else ''
+
+        return render_template('admin_match.html', login=True, userclub=user['club'], admin=user['admin'], match=match,
+                               error=False)
+    elif request.method == 'POST':
+        try:
+            match['division'] = request.form.get('divisie')
+            match['matchweek'] = request.form.get('matchweek')
+            match['date'] = request.form.get('datum')
+            match['time'] = request.form.get('tijd')
+            match['hometeam'] = teamToID(request.form.get('thuisploeg'))
+            match['awayteam'] = teamToID(request.form.get('uitploeg'))
+            match['status'] = statusToID(request.form.get('status'))
+
+            response = requests.put(f'http://matches:5000/matches/{match_id}', data=match)
+            return redirect('/admin/matches')
+        except:
+            return render_template('admin_match.html', login=True, userclub=user['club'], admin=user['admin'],
+                                   match=match, error=True)
+
+
+@client_blueprint.route('/admin/matches/<match_id>/referee', methods=['GET'])
+@jwt_required
+def assign_referee(match_id):
+    response = requests.get(f'http://matches:5000/matches/{match_id}')
+    match = response.json()['data']
+    response = requests.get('http://matches:5000/referees')
+    referees = response.json()['data']['referees']
+    user = get_identity_if_login()
+    name = request.args.get('referee', default=None, type=str)
+
+    if name is None:
+        return render_template('admin_match_referee.html', login=True, userclub=user['club'], admin=user['admin'],
+                               referees=referees, error=False, double_booked=False)
+    else:
+        try:
+            id = -1
+            name = name.split()
+            for ref in referees:
+                if ref['firstname'] == name[0] and ref['lastname'] == name[1]:
+                    id = ref['id']
+
+
+            match['referee'] = id
+
+            response = requests.put(f'http://matches:5000/matches/{match_id}', data=match)
+            message = response.json()['message']
+
+            if message == 'Referee double booked':
+                return render_template('admin_match_referee.html', login=True, userclub=user['club'],
+                                       admin=user['admin'],
+                                       match=match, error=True, double_booked=True)
+
+            return redirect('/admin/matches')
+        except:
+            return render_template('admin_match_referee.html', login=True, userclub=user['club'], admin=user['admin'],
+                                   match=match, error=True, double_booked=False)
+
+@client_blueprint.route('/admin/status', methods=['GET'])
+@jwt_required
+def status_admin():
+    response = requests.get('http://matches:5000/status')
+    status_list = response.json()['data']['status']
+
+    user = get_identity_if_login()
+    return render_template('status_division_admin.html', login=True, userclub=user['club'], admin=user['admin'],
+                           status=True, all_status=status_list)
+
+@client_blueprint.route('/admin/status/add', methods=['GET', 'POST'])
+@jwt_required
+def admin_add_status():
+    user = get_identity_if_login()
+    if request.method == "GET":
+        return render_template('status_division_add.html', login=True, userclub=user['club'], admin=user['admin'],
+                               status=True, error=False)
+    else:
+        status = request.form.get('status')
+        obj = {'statusname': status}
+
+        response = requests.post('http://matches:5000/status', data=obj)
+        status_code = response.json()['status']
+
+        if status_code == 'success':
+            return redirect('/admin/status')
+        else:
+            return render_template('status_division_add.html', login=True, userclub=user['club'], admin=user['admin'],
+                                   status=True, error=True)
+
+@client_blueprint.route('/admin/status/<status_id>/delete', methods=['GET'])
+@jwt_required
+def admin_delete_status(status_id):
+    user = get_identity_if_login()
+    response = requests.delete(f'http://matches:5000/status/{status_id}')
+    return redirect('/admin/status')
+
+@client_blueprint.route('/admin/status/<status_id>', methods=['GET', 'POST'])
+@jwt_required
+def admin_edit_status(status_id):
+    user = get_identity_if_login()
+    response = requests.get(f'http://matches:5000/status/{status_id}')
+    status = response.json()['data']
+    if request.method == "GET":
+        return render_template('status_division_edit.html', login=True, userclub=user['club'], admin=user['admin'],
+                               status=True, error=False, s=status)
+    else:
+        status = request.form.get('status')
+        obj = {'statusname': status}
+
+        response = requests.put(f'http://matches:5000/status/{status_id}', data=obj)
+        status_code = response.json()['status']
+
+        if status_code == 'success':
+            return redirect('/admin/status')
+        else:
+            return render_template('status_division_edit.html', login=True, userclub=user['club'], admin=user['admin'],
+                                   status=True, error=True, s=status)

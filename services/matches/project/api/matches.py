@@ -27,7 +27,7 @@ def ping_referees():
 @matches_blueprint.route('/referees', methods=['POST'])
 def add_referee():
     """Create a referee"""
-    post_data = request.get_json()
+    post_data = request.form
     response_object = {
         'status': 'fail',
         'message': 'Invalid payload.'
@@ -103,7 +103,7 @@ def get_all_referees():
 @matches_blueprint.route('/referees/<referee_id>', methods=['PUT'])
 def update_referee(referee_id):
     """Update single referee details"""
-    data = request.get_json()
+    data = request.form
     response_object = {
         'status': 'fail',
         'message': 'Referee does not exist'
@@ -180,7 +180,7 @@ def ping_divisions():
 @matches_blueprint.route('/divisions', methods=['POST'])
 def add_division():
     """Create a division"""
-    post_data = request.get_json()
+    post_data = request.form
     response_object = {
         'status': 'fail',
         'message': 'Invalid payload.'
@@ -242,7 +242,7 @@ def get_all_divisions():
 @matches_blueprint.route('/divisions/<division_id>', methods=['PUT'])
 def update_division(division_id):
     """Update single division details"""
-    data = request.get_json()
+    data = request.form
     response_object = {
         'status': 'fail',
         'message': 'Division does not exist'
@@ -317,7 +317,7 @@ def ping_status():
 @matches_blueprint.route('/status', methods=['POST'])
 def add_status():
     """Create a status"""
-    post_data = request.get_json()
+    post_data = request.form
     response_object = {
         'status': 'fail',
         'message': 'Invalid payload.'
@@ -379,7 +379,7 @@ def get_all_status():
 @matches_blueprint.route('/status/<status_id>', methods=['PUT'])
 def update_status(status_id):
     """Update single status details"""
-    data = request.get_json()
+    data = request.form
     response_object = {
         'status': 'fail',
         'message': 'Status does not exist'
@@ -449,7 +449,7 @@ def ping_matches():
 @matches_blueprint.route('/matches', methods=['POST'])
 def add_match():
     """Create a match"""
-    post_data = request.get_json()
+    post_data = request.form
     response_object = {
         'status': 'fail',
         'message': 'Invalid payload.'

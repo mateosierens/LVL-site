@@ -22,7 +22,7 @@ class User(db.Model):
         self.email = email
         self.club = club
         self.admin = admin
-        self.super_admin = admin
+        self.super_admin = super_admin
 
     def to_json(self):
         return {
