@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="jumbotron">
+        {% if match.goalshome is not none and match.goalsaway is not none %}
+            <h1 class="display-4 text-sm-center">{{ match.hometeam }} {{ match.goalshome }} - {{ match.goalsaway }} {{ match.awayteam }}</h1>
+        {% else %}
+            <h1 class="display-4 text-sm-center">{{ match.hometeam }} ? - ? {{ match.awayteam }}</h1>
+        {% endif %}
+        <div style="max-width: 600px; margin: auto;" class="d-flex center justify-content-center align-items-center">
+    </div>
+</div>
+<div class="card">
+  <div class="card-header">
+      <h3>Info & statistics</h3>
+  </div>
+  <div class="card-body">
+    <h3 class="card-title">Kickoff: {{ match.date }} - {{ match.time }}</h3>
+    <p class="card-text">Referee: {{ match.referee }}</p>
+    {% if stats %}
+        <p class="card-text">Teams have played eachother {{ times_played }}</p>
+        <p class="card-text">Team {{ match.hometeam }} has won {{ wins_hometeam }} times</p>
+        <p class="card-text">Team {{ match.awayteam }} has won {{ wins_awayteam }} times</p>
+        <h3 class="card-title">Statistiek van vorige matches:</h3>
+        {% for game in last_games %}
+            <p class="card-text">{{ game.hometeam }} {{ game.goalshome }} - {{ game.goalsaway }} {{ game.awayteam}}</p>
+        {% endfor %}
+    {% endif %}
+      <p class="card-text">Home team form: {{ ht_scores }}</p>
+      <p class="card-text">Away team form: {{ at_scores }}</p>
+      {% if forecast is not none %}
+        <h3 class="card-title">Weather:</h3>
+        <p class="card-text">Beschrijving: {{ forecast.weather[0].description }}</p>
+        <p class="card-text">Minimum temperatuur: {{ forecast.temp.min }}</p>
+        <p class="card-text">Maximum temperatuur: {{ forecast.temp.max }}</p>
+      {% endif %}
+  </div>
+</div>
+{% endblock %}

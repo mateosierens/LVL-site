@@ -16,12 +16,6 @@ class BaseConfig:
     # Enable csrf double submit protection
     JWT_COOKIE_CSRF_PROTECT = False
 
-    # 30 min
-    JWT_ACCESS_TOKEN_EXPIRES = 1800
-
-    # 20 dagen
-    JWT_REFRESH_TOKEN_EXPIRES = 1728000
-
     # Set the secret key to sign the JWTs with
     JWT_SECRET_KEY = '*^*(*&)(*)(*afafafaSDD47j\3yX R~X@H!jmM]Lwf/,?KT'
 

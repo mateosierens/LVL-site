@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="list-group">
+    {% for club in data %}
+        <a href="/competition/clubs/{{ club.stamnumber }}" class="list-group-item list-group-item-action">{{ club.name }}</a>
+    {% endfor %}
+</div>
+
+{% endblock %}

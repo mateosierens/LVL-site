@@ -1,12 +1,13 @@
 # services/client/project/api/client.py
 # front end of the site
 import requests
+import datetime
+from math import inf
 
 from flask import Blueprint, jsonify, request, render_template, redirect, url_for, make_response
 from sqlalchemy import exc
 from sqlalchemy.sql import func
 
-# from project.api.models import Referee, Status, Division, Match
 from project import db, create_app, jwt
 
 from flask_jwt_extended import (
@@ -17,6 +18,7 @@ from flask_jwt_extended import (
 )
 
 client_blueprint = Blueprint('client', __name__, template_folder='./templates')
+
 
 # helper function to check login
 def get_identity_if_login():
@@ -34,6 +36,7 @@ def home():
         return render_template('home.html', login=True, admin=user['admin'])
     else:
         return render_template('home.html', login=False, admin=False)
+
 
 @client_blueprint.route('/login', methods=['POST'])
 def login():
@@ -65,6 +68,7 @@ def login():
     set_refresh_cookies(resp, refresh_token)
     return resp
 
+
 # Same thing as login here, except we are only setting a new cookie
 # for the access token.
 @client_blueprint.route('/refresh', methods=['POST'])
@@ -84,9 +88,372 @@ def refresh():
 def get_login_page():
     return render_template('login.html', badLogin=False)
 
+
 @client_blueprint.route('/logout', methods=['GET'])
 def logout():
     resp = make_response(render_template('logout_success.html'))
     unset_jwt_cookies(resp)
     return resp, 200
 
+
+@client_blueprint.route('/competition/clubs', methods=['GET'])
+def get_all_clubs():
+    # get list of clubs info and pass this to html template
+    response = requests.get("http://teams:5000/clubs")
+    data = response.json()['data']['clubs']
+
+    user = get_identity_if_login()
+    if user:
+        return render_template('clubs.html', login=True, admin=user['admin'], data=data)
+    else:
+        return render_template('clubs.html', login=False, admin=False, data=data)
+
+
+@client_blueprint.route('/competition/clubs/<stamnumber>', methods=['GET'])
+def get_club(stamnumber):
+    # get list of clubs info and pass this to html template
+    response = requests.get(f"http://teams:5000/clubs/{stamnumber}")
+    club = response.json()['data']
+
+    response = requests.get("http://teams:5000/teams")
+    teams = response.json()['data']['teams']
+
+    user = get_identity_if_login()
+    if user:
+        return render_template('club.html', login=True, admin=user['admin'], club=club, teams=teams)
+    else:
+        return render_template('club.html', login=False, admin=False, club=club, teams=teams)
+
+
+@client_blueprint.route('/competition/teams/<team_id>', methods=['GET'])
+def get_team(team_id):
+    # get team
+    response = requests.get(f"http://teams:5000/teams/{team_id}")
+    team = response.json()['data']
+
+    # get club with stamnumber of team
+    response = requests.get(f"http://teams:5000/clubs/{team['stamnumber']}")
+    club = response.json()['data']
+
+    user = get_identity_if_login()
+    if user:
+        return render_template('team.html', login=True, admin=user['admin'], team=team, club=club)
+    else:
+        return render_template('team.html', login=False, admin=False, team=team, club=club)
+
+
+@client_blueprint.route('/competition/divisions', methods=['GET'])
+def get_divisions():
+    # get divisions
+    response = requests.get("http://matches:5000/divisions")
+    divisions = response.json()['data']['divisions']
+
+    user = get_identity_if_login()
+    if user:
+        return render_template('divisions.html', login=True, admin=user['admin'], divisions=divisions)
+    else:
+        return render_template('divisions.html', login=False, admin=False, divisions=divisions)
+
+
+def getTeamName(team_id):
+    resp = requests.get(f"http://teams:5000/teams/{team_id}")
+    stamnumber = resp.json()['data']['stamnumber']
+    resp = requests.get(f"http://teams:5000/clubs/{stamnumber}")
+    return resp.json()['data']['name']
+
+
+def getStatus(status_id):
+    resp = requests.get(f"http://matches:5000/status/{status_id}")
+    return resp.json()['data']['statusname']
+
+
+def scoreGoals(team_id, matches):
+    info = {'name': team_id, 'played': 0, 'win': 0, 'loss': 0, 'tie': 0, 'DV': 0, 'DT': 0, 'PT': 0, 'sheet': 0}
+    for match in matches:
+        if match['goalshome'] is None or match['goalsaway'] is None:
+            continue
+        if match['hometeam'] == team_id:
+            info['played'] += 1
+            info['DV'] += match['goalshome']
+            info['DT'] += match['goalsaway']
+            if info['DT'] == 0:
+                info['sheet'] += 1
+            if match['goalshome'] > match['goalsaway']:
+                info['PT'] += 3
+                info['win'] += 1
+            elif match['goalshome'] == match['goalsaway']:
+                info['PT'] += 1
+                info['tie'] += 1
+            else:
+                info['loss'] += 1
+        elif match['awayteam'] == team_id:
+            info['played'] += 1
+            info['DV'] += match['goalsaway']
+            info['DT'] += match['goalshome']
+            if info['DT'] == 0:
+                info['sheet'] += 1
+            if match['goalshome'] < match['goalsaway']:
+                info['PT'] += 3
+                info['win'] += 1
+            elif match['goalshome'] == match['goalsaway']:
+                info['PT'] += 1
+                info['tie'] += 1
+            else:
+                info['loss'] += 1
+    return info
+
+
+def make_league_table(matches_division):
+    """
+    Creates the league table for a certain division, helper function for route function below
+    :param matches_division: list of matches for a certain division
+    :return: ordered list that specifies league table, each entry is dict
+    """
+    teams_checked = []  # list of teams checked
+    ranking = []
+    for match in matches_division:
+        team_id = match['hometeam']
+        if team_id not in teams_checked:
+            rank = scoreGoals(team_id, matches_division)
+            ranking.append(rank)
+            teams_checked.append(team_id)
+        else:
+            team_id = match['awayteam']
+            if team_id not in teams_checked:
+                rank = scoreGoals(team_id, matches_division)
+                ranking.append(rank)
+                teams_checked.append(team_id)
+
+    # sort ranking on score from high to low
+    ranking.sort(key=lambda rank: rank['PT'], reverse=True)
+
+    return ranking
+
+
+def make_week_fixture(matches):
+    week = []
+    for match in matches:
+        info = {}
+        info['matchweek'] = match['matchweek']
+        info['date'] = match['date']
+        info['time'] = match['time']
+        info['hometeam'] = getTeamName(match['hometeam'])
+        info['awayteam'] = getTeamName(match['awayteam'])
+        info['status'] = getStatus(match['status']) if match['status'] is not None else ''
+        info['referee'] = match['referee'] if match['referee'] is not None else ''
+        info['result'] = str(match['goalshome']) + ' - ' + str(match['goalsaway']) if match['goalshome'] is not None or \
+                                                                                      match[
+                                                                                          'goalsaway'] is not None else ''
+        info['id'] = match['id']
+        week.append(info)
+    return week
+
+
+@client_blueprint.route('/competition/divisions/<division_id>', methods=['GET'])
+def get_fixture_for_division(division_id):
+    # get all seasons
+    seasons = []
+    year0 = 2018
+    year1 = 2019
+    for i in range(3):
+        seasons.append({'season': str(year0) + '-' + str(year1)})
+        year0 += 1
+        year1 += 1
+
+    user = get_identity_if_login()
+    if user:
+        return render_template('seasons.html', login=True, admin=user['admin'], seasons=seasons, division=division_id)
+    else:
+        return render_template('seasons.html', login=False, admin=False, seasons=seasons, division=division_id)
+
+
+@client_blueprint.route('/competition/divisions/<division_id>/<year0>-<year1>', methods=['GET'])
+def get_fixture_for_division_season(division_id, year0, year1):
+    # get all matches
+    response = requests.get("http://matches:5000/matches")
+    matches = response.json()['data']['matches']
+
+    # define season
+    begin_season = datetime.date(int(year0), 9, 1)
+    end_season = datetime.date(int(year1), 8, 31)
+
+    # make league table
+    division_matches = []
+    for match in matches:
+        date = datetime.datetime.strptime(match['date'], '%Y-%m-%d').date()
+        if match['division'] == int(division_id) and begin_season <= date <= end_season:
+            division_matches.append(match)
+    league_table = make_league_table(division_matches)
+
+    # convert team id into team name
+    # list team with best attack, defense, most clean sheet
+    best_attack = None
+    best_attack_points = 0
+    best_defense = None
+    best_defense_points = inf
+    cleanest_sheet = None
+    cleanest_sheet_points = 0
+    for entry in league_table:
+        entry['name'] = getTeamName(entry['name'])
+        if entry['DV'] > best_attack_points:
+            best_attack_points = entry['DV']
+            best_attack = entry
+        if entry['DT'] < best_defense_points:
+            best_defense_points = entry['DT']
+            best_defense = entry
+        if entry['sheet'] > cleanest_sheet_points:
+            cleanest_sheet_points = entry['sheet']
+            cleanest_sheet = entry
+
+    # convert season to json for template
+    year = {'begin': year0, 'end': year1}
+
+    # show all fixtures for specific matchweek with posibility to filter on specific team
+    # filter on matchweek
+    matchweek = request.args.get('matchweek', default=None, type=int)
+
+    # filter on team
+    response = requests.get("http://teams:5000/clubs")
+    clubs = response.json()['data']['clubs']
+    team = request.args.get('team', default=None, type=str)
+
+    # create fixture
+    week_matches = []
+    if matchweek == None:
+        week_matches = division_matches
+    else:
+        for match in division_matches:
+            if match['matchweek'] == matchweek:
+                week_matches.append(match)
+    fixture = make_week_fixture(week_matches)
+
+    # filter fixture on team
+    if team is not None:
+        temp_fixture = []
+        team.replace('+', ' ')
+        for entry in fixture:
+            if entry['hometeam'] == team or entry['awayteam'] == team:
+                temp_fixture.append(entry)
+        fixture = temp_fixture
+
+    if fixture:
+        # sort fixture on matchweek
+        fixture.sort(key=lambda week: week['matchweek'])
+
+    user = get_identity_if_login()
+    if user:
+        return render_template('league.html', login=True, admin=user['admin'], league_table=league_table, year=year,
+                               fixture=fixture, clubs=clubs, best_attack=best_attack, best_defense=best_defense,
+                               cleanest_sheet=cleanest_sheet)
+    else:
+        return render_template('league.html', login=False, admin=False, league_table=league_table, year=year,
+                               fixture=fixture, clubs=clubs, best_attack=best_attack, best_defense=best_defense,
+                               cleanest_sheet=cleanest_sheet)
+
+
+def getLastGames(matches, amount=3):
+    to_return = []
+    list_copy = matches[:]
+    for i in range(amount):
+        val = min(list_copy,
+                  key=lambda s: datetime.datetime.strptime(s['date'], "%Y-%m-%d").date() - datetime.date.today())
+        to_return.append(val)
+        list_copy.remove(val)
+    return to_return
+
+
+def create_win_loss_string(games, match):
+    string = ""
+    for game in games:
+        if game['hometeam'] > game['awayteam']:
+            if match['hometeam'] == game['hometeam']:
+                string += 'W'
+            else:
+                string += 'L'
+        elif game['hometeam'] == game['awayteam']:
+            string += 'D'
+        else:
+            if match['hometeam'] == game['hometeam']:
+                string += 'L'
+            else:
+                string += 'W'
+    return string
+
+
+@client_blueprint.route('/competition/matches/<match_id>', methods=['GET'])
+def get_specific_fixture(match_id):
+    # normal info
+    response = requests.get(f"http://matches:5000/matches/{match_id}")
+    match = response.json()['data']
+
+    # check if match is yet to be played
+    # if true, include statistics
+    date = datetime.datetime.strptime(match['date'], '%Y-%m-%d').date()
+    now = datetime.date.today()
+    stats = False
+    times_played = 0
+    wins_hometeam = 0
+    wins_awayteam = 0
+    last_games = []
+    ht_scores_string = ''
+    at_scores_string = ''
+    if date > now:
+        stats = True
+        # match has not been played
+        response = requests.get("http://matches:5000/matches")
+        matches = response.json()['data']['matches']
+
+        historic_matches = []
+        for temp_match in matches:
+            if (temp_match['hometeam'] == match['hometeam'] or temp_match['hometeam'] == match['awayteam']) and (
+                    temp_match['awayteam'] == match['hometeam'] or temp_match['awayteam'] == match['awayteam']):
+                if temp_match['goalshome'] is None or temp_match['goalsaway'] is None:
+                    continue
+                historic_matches.append(temp_match)
+                times_played += 1
+                if temp_match['goalshome'] > temp_match['goalsaway']:
+                    if temp_match['hometeam'] == match['hometeam']:
+                        wins_hometeam += 1
+                    else:
+                        wins_awayteam += 1
+                elif temp_match['goalshome'] < temp_match['goalsaway']:
+                    if temp_match['awayteam'] == match['hometeam']:
+                        wins_hometeam += 1
+                    else:
+                        wins_awayteam += 1
+        last_games = getLastGames(historic_matches)
+        hometeam_matches = [i for i in matches if
+                            i['hometeam'] == match['hometeam'] or i['awayteam'] == match['hometeam']]
+        awayteam_matches = [i for i in matches if
+                            i['hometeam'] == match['awayteam'] or i['awayteam'] == match['awayteam']]
+        ht_last_games = getLastGames(hometeam_matches, 5)
+        at_last_games = getLastGames(awayteam_matches, 5)
+        ht_scores_string = create_win_loss_string(ht_last_games, match)
+        at_scores_string = create_win_loss_string(at_last_games, match)
+
+    # check if match is in 7 days, if so include weather report
+    week = None
+    next_week = now + datetime.timedelta(days=7)
+    if now <= date <= next_week:
+        # get weather info from antwerpen
+        delta = date - now
+        response = requests.get(
+            "https://api.openweathermap.org/data/2.5/onecall?lat=51.2194475&lon=4.4024643&exclude=current,minutely,hourly,alerts&units=metric&appid=0202a55647559a82e31a2b4711bfc638")
+        week = response.json()['daily'][delta.days]
+
+    # render template
+    match['hometeam'] = getTeamName(match['hometeam'])
+    match['awayteam'] = getTeamName(match['awayteam'])
+    for game in last_games:
+        game['hometeam'] = getTeamName(game['hometeam'])
+        game['awayteam'] = getTeamName(game['awayteam'])
+
+    user = get_identity_if_login()
+    if user:
+        return render_template('fixture.html', login=True, admin=user['admin'], match=match, stats=stats,
+                               times_played=times_played, wins_awayteam=wins_awayteam, wins_hometeam=wins_hometeam,
+                               last_games=last_games, ht_scores=ht_scores_string, at_scores=at_scores_string, forecast=week)
+    else:
+        return render_template('fixture.html', login=False, admin=False, match=match, stats=stats,
+                               times_played=times_played, wins_awayteam=wins_awayteam, wins_hometeam=wins_hometeam,
+                               last_games=last_games, ht_scores=ht_scores_string, at_scores=at_scores_string, forecast=week)

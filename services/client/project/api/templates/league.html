@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="pt-4 w-75 mx-auto col">
+      <table class=" table">
+        <h1>{{ year.begin }} - {{ year.end }}</h1>
+        <thead class="thead-dark">
+          <tr>
+            <th scope="col">Rang</th>
+            <th scope="col">Teamnaam</th>
+            <th scope="col">Gesp</th>
+            <th scope="col">Gew</th>
+            <th scope="col">Ver</th>
+            <th scope="col">Gel</th>
+            <th scope="col">DV</th>
+            <th scope="col">DT</th>
+            <th scope="col">PT</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for entry in league_table %}
+              <tr>
+                <th scope="row">{{ loop.index }}</th>
+                <td>{{ entry.name }}</td>
+                <td>{{ entry.played }}</td>
+                <td>{{ entry.win }}</td>
+                <td>{{ entry.loss }}</td>
+                <td>{{ entry.tie }}</td>
+                <td>{{ entry.DV }}</td>
+                <td>{{ entry.DT }}</td>
+                <td>{{ entry.PT }}</td>
+              </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <!-- best offense, defense, cleanest sheet -->
+      <p>Beste aanval: {{ best_attack.name }}</p>
+      <p>Beste verdediging: {{ best_defense.name }}</p>
+      <p>Most clean sheet: {{ cleanest_sheet.name }}</p>
+      <form method="get">
+        <div class="form-group">
+          <label for="matchweek">Select matchweek:</label>
+          <select class="form-control" id="matchweek" name="matchweek">
+            <option hidden disabled selected value> -- select an option -- </option>
+            {% for n in range(1,53) %}
+              <option>{{ n }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Submit</button>
+      </form>
+      <form method="get">
+        <div class="form-group">
+          <label for="team">Select team:</label>
+          <select class="form-control" id="team" name="team">
+            <option hidden disabled selected value> -- select an option -- </option>
+            {% for club in clubs %}
+              <option>{{ club.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Submit</button>
+      </form>
+      {% set last_value = {'matchweek': 0} %}
+      {% for fixture in fixture %}
+        {% if last_value.key != fixture.matchweek %}
+          {% if last_value.key != 0 %}
+                </tbody>
+            </table>
+          {% endif %}
+          <table class=" table">
+            <h1>Matchweek {{ fixture.matchweek }}</h1>
+            <thead class="thead-dark">
+              <tr>
+                <th scope="col">Datum</th>
+                <th scope="col">Uur</th>
+                <th scope="col">Thuisploeg</th>
+                <th scope="col">Uitploeg</th>
+                <th scope="col">Status</th>
+                <th scope="col">Scheidsrechter</th>
+                <th scope="col">Uitslag</th>
+                <th scope="col">Extra</th>
+              </tr>
+            </thead>
+          <tbody>
+        {% endif %}
+            <tr>
+              <td>{{ fixture.date }}</td>
+              <td>{{ fixture.time }}</td>
+              <td>{{ fixture.hometeam }}</td>
+              <td>{{ fixture.awayteam }}</td>
+              <td>{{ fixture.status }}</td>
+              <td>{{ fixture.referee }}</td>
+              <td>{{ fixture.result }}</td>
+              <td><a class="btn btn-primary btn-sm" href="/competition/matches/{{ fixture.id }}" role="button">Meer info</a></td>
+            </tr>
+        {% set temp = last_value.update({'key': fixture.matchweek}) %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}
