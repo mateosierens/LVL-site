@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="pt-4 w-75 mx-auto col">
+      <div class="row">
+          <a href="/admin/users/add" class="btn btn-primary float-right buttonBlue">Add user</a>
+      </div>
+        {% for u in users %}
+              <div class="card">
+                  <h5 class="card-header">{{ u.username }}</h5>
+                  <div class="card-body">
+                    <p class="card-text">Email: {{ u.email }}</p>
+                    <p class="card-text">Club: {{ u.club }}</p>
+                    <p class="card-text">Admin: {{ u.admin }}</p>
+                    <p class="card-text">Super admin: {{ u.superadmin }}</p>
+                    <a href="/admin/users/{{ u.id }}" class="btn btn-primary">Edit</a>
+                    <a href="/admin/users/{{ u.id }}/delete" class="btn btn-primary">Delete</a>
+                  </div>
+              </div>
+        {% endfor %}
+  </div>
+</div>
+{% endblock %}

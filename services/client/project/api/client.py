@@ -718,7 +718,6 @@ def admin_add_status():
 @client_blueprint.route('/admin/status/<status_id>/delete', methods=['GET'])
 @jwt_required
 def admin_delete_status(status_id):
-    user = get_identity_if_login()
     response = requests.delete(f'http://matches:5000/status/{status_id}')
     return redirect('/admin/status')
 
@@ -743,3 +742,191 @@ def admin_edit_status(status_id):
         else:
             return render_template('status_division_edit.html', login=True, userclub=user['club'], admin=user['admin'],
                                    status=True, error=True, s=status)
+
+@client_blueprint.route('/admin/divisions', methods=['GET'])
+@jwt_required
+def division_admin():
+    response = requests.get('http://matches:5000/divisions')
+    division_list = response.json()['data']['divisions']
+
+    user = get_identity_if_login()
+    return render_template('status_division_admin.html', login=True, userclub=user['club'], admin=user['admin'],
+                           status=False, all_divisions=division_list)
+
+@client_blueprint.route('/admin/divisions/add', methods=['GET', 'POST'])
+@jwt_required
+def admin_add_division():
+    user = get_identity_if_login()
+    if request.method == "GET":
+        return render_template('status_division_add.html', login=True, userclub=user['club'], admin=user['admin'],
+                               status=False, error=False)
+    else:
+        division = request.form.get('division')
+        obj = {'divisionname': division}
+
+        response = requests.post('http://matches:5000/divisions', data=obj)
+        status_code = response.json()['status']
+
+        if status_code == 'success':
+            return redirect('/admin/divisions')
+        else:
+            return render_template('status_division_add.html', login=True, userclub=user['club'], admin=user['admin'],
+                                   status=False, error=True)
+
+@client_blueprint.route('/admin/divisions/<division_id>/delete', methods=['GET'])
+@jwt_required
+def admin_delete_division(division_id):
+    response = requests.delete(f'http://matches:5000/divisions/{division_id}')
+    return redirect('/admin/divisions')
+
+@client_blueprint.route('/admin/divisions/<division_id>', methods=['GET', 'POST'])
+@jwt_required
+def admin_edit_division(division_id):
+    user = get_identity_if_login()
+    response = requests.get(f'http://matches:5000/divisions/{division_id}')
+    division = response.json()['data']
+    if request.method == "GET":
+        return render_template('status_division_edit.html', login=True, userclub=user['club'], admin=user['admin'],
+                               status=False, error=False, d=division)
+    else:
+        status = request.form.get('division')
+        obj = {'divisionname': status}
+
+        response = requests.put(f'http://matches:5000/divisions/{division_id}', data=obj)
+        status_code = response.json()['status']
+
+        if status_code == 'success':
+            return redirect('/admin/divisions')
+        else:
+            return render_template('status_division_edit.html', login=True, userclub=user['club'], admin=user['admin'],
+                                   status=False, error=True, d=division)
+
+@client_blueprint.route('/admin/users', methods=['GET'])
+@jwt_required
+def user_admin():
+    response = requests.get('http://users:5000/users')
+    users = response.json()['data']['users']
+
+    user = get_identity_if_login()
+    return render_template('users_admin.html', login=True, userclub=user['club'], admin=user['admin'],
+                           status=False, users=users)
+
+@client_blueprint.route('/admin/users/add', methods=['GET', 'POST'])
+@jwt_required
+def admin_add_user():
+    user = get_identity_if_login()
+    if request.method == "GET":
+        return render_template('users_admin_add.html', login=True, userclub=user['club'], admin=user['admin'], error=False)
+    else:
+        new_user = {}
+        new_user['username'] = request.form.get('username')
+        new_user['password'] = request.form.get('password')
+        new_user['email'] = request.form.get('email')
+        new_user['club'] = int(request.form.get('club')) if request.form.get('club') is not '' else None
+        new_user['admin'] = True if request.form.get('admin') == 'on' else False
+        new_user['superadmin'] = True if request.form.get('superadmin') == 'on' else False
+
+
+        response = requests.post('http://users:5000/users', data=new_user)
+        status_code = response.json()['status']
+
+        if status_code == 'success':
+            return redirect('/admin/users')
+        else:
+            return render_template('users_admin_add.html', login=True, userclub=user['club'], admin=user['admin'],
+                                   error=True)
+
+@client_blueprint.route('/admin/users/<user_id>/delete', methods=['GET'])
+@jwt_required
+def admin_delete_user(user_id):
+    response = requests.delete(f'http://users:5000/users/{user_id}')
+    return redirect('/admin/users')
+
+@client_blueprint.route('/admin/users/<user_id>', methods=['GET', 'POST'])
+@jwt_required
+def admin_edit_user(user_id):
+    user = get_identity_if_login()
+    response = requests.get(f'http://users:5000/users/{user_id}')
+    query_user = response.json()['data']
+    if request.method == "GET":
+        return render_template('users_admin_edit.html', login=True, userclub=user['club'], admin=user['admin'],
+                               error=False, user=query_user)
+    else:
+        new_user = {}
+        new_user['username'] = request.form.get('username')
+        new_user['password'] = request.form.get('password')
+        new_user['email'] = request.form.get('email')
+        new_user['club'] = int(request.form.get('club')) if request.form.get('club') is not '' else None
+        new_user['admin'] = True if request.form.get('admin') == 'on' else False
+        new_user['superadmin'] = True if request.form.get('superadmin') == 'on' else False
+
+        response = requests.put(f'http://users:5000/users/{user_id}', data=new_user)
+        status_code = response.json()['status']
+
+        if status_code == 'success':
+            return redirect('/admin/users')
+        else:
+            return render_template('users_admin_edit.html', login=True, userclub=user['club'], admin=user['admin'],
+                                   error=True, user=query_user)
+
+@client_blueprint.route('/admin/teams', methods=['GET'])
+@jwt_required
+def team_admin():
+    response = requests.get('http://teams:5000/teams')
+    teams = response.json()['data']['teams']
+
+    user = get_identity_if_login()
+    return render_template('teams_admin.html', login=True, userclub=user['club'], admin=user['admin'],
+                           status=False, teams=teams)
+
+@client_blueprint.route('/admin/teams/add', methods=['GET', 'POST'])
+@jwt_required
+def admin_add_team():
+    user = get_identity_if_login()
+    if request.method == "GET":
+        return render_template('teams_admin_add.html', login=True, userclub=user['club'], admin=user['admin'], error=False)
+    else:
+        new_team = {}
+        new_team['stamnumber'] = int(request.form.get('stamnumber'))
+        new_team['suffix'] = request.form.get('suffix')
+        new_team['color'] = request.form.get('color')
+
+        response = requests.post('http://teams:5000/teams', data=new_team)
+        status_code = response.json()['status']
+
+        if status_code == 'success':
+            return redirect('/admin/teams')
+        else:
+            return render_template('teams_admin_add.html', login=True, userclub=user['club'], admin=user['admin'],
+                                   error=True)
+
+@client_blueprint.route('/admin/teams/<team_id>/delete', methods=['GET'])
+@jwt_required
+def admin_delete_team(team_id):
+    response = requests.delete(f'http://teams:5000/teams/{team_id}')
+    return redirect('/admin/teams')
+
+@client_blueprint.route('/admin/teams/<team_id>', methods=['GET', 'POST'])
+@jwt_required
+def admin_edit_team(team_id):
+    user = get_identity_if_login()
+    response = requests.get(f'http://teams:5000/teams/{team_id}')
+    team = response.json()['data']
+    if request.method == "GET":
+        return render_template('teams_admin_edit.html', login=True, userclub=user['club'], admin=user['admin'],
+                               error=False, team=team)
+    else:
+        new_team = {}
+        new_team['stamnumber'] = int(request.form.get('stamnumber'))
+        new_team['suffix'] = request.form.get('suffix')
+        new_team['color'] = request.form.get('color')
+
+        response = requests.put(f'http://teams:5000/teams/{team_id}', data=new_team)
+        status_code = response.json()['status']
+
+        if status_code == 'success':
+            return redirect('/admin/teams')
+        else:
+            return render_template('teams_admin_edit.html', login=True, userclub=user['club'], admin=user['admin'],
+                                   error=True, team=team)
+

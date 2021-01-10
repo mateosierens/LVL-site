@@ -28,5 +28,24 @@
       </div>
     </div>
 {% else %}
+    <div class="container-fluid">
+      <div class="pt-4 w-75 mx-auto col">
+          <form method="post">
+              <div class="col">
+                  <div class="row">
+                      <label for="inputDivision" class="col-sm-2 col-form-label">Division</label>
+                  </div>
+                  <div class="row">
+                        <input type="text" class="form-control" name="division" id="inputDivision" value="{{ d.divisionname }}">
+                  </div>
+                  <div class="row">
+                    <div class="col-sm-10">
+                      <button type="submit" class="btn btn-primary">Slaag wijzigingen op</button>
+                    </div>
+                  </div>
+              </div>
+          </form>
+      </div>
+    </div>
 {% endif %}
 {% endblock %}

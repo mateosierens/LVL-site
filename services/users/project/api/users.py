@@ -14,7 +14,7 @@ users_blueprint = Blueprint('users', __name__)
 @users_blueprint.route('/users', methods=['POST'])
 def add_user():
     """Create a user"""
-    post_data = request.get_json()
+    post_data = request.form
     response_object = {
         'status': 'fail',
         'message': 'Invalid payload.'
@@ -25,8 +25,8 @@ def add_user():
     password = post_data.get('password')
     email = post_data.get('email')
     club = post_data.get('club')
-    admin = post_data.get('admin')
-    super_admin = post_data.get('superadmin')
+    admin = bool(post_data.get('admin'))
+    super_admin = bool(post_data.get('superadmin'))
     try:
         user = User.query.filter_by(email=email).first()
         if not user:
@@ -91,7 +91,7 @@ def get_all_users():
 @users_blueprint.route('/users/<user_id>', methods=['PUT'])
 def update_user(user_id):
     """Update single user details"""
-    data = request.get_json()
+    data = request.form
     response_object = {
         'status': 'fail',
         'message': 'User does not exist'
@@ -108,10 +108,10 @@ def update_user(user_id):
             password = data.get('password')
             email = data.get('email')
             club = data.get('club')
-            admin = data.get('admin')
-            super_admin = data.get('superadmin')
+            admin = bool(data.get('admin'))
+            super_admin = bool(data.get('superadmin'))
             findEmail = User.query.filter_by(email=email).first()
-            if findEmail:
+            if findEmail and username != findEmail.username:
                 response_object['message'] = 'Sorry. That email already exists.'
                 return jsonify(response_object), 400
             user.username = username

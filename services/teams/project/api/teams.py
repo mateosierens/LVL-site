@@ -22,14 +22,14 @@ def ping_team():
 @teams_blueprint.route('/teams', methods=['POST'])
 def add_team():
     """Create a team"""
-    post_data = request.get_json()
+    post_data = request.form
     response_object = {
         'status': 'fail',
         'message': 'Invalid payload.'
     }
     if not post_data:
         return jsonify(response_object), 400
-    stamNumber = post_data.get('stamnumber')
+    stamNumber = int(post_data.get('stamnumber'))
     suffix = post_data.get('suffix')
     color = post_data.get('color')
     try:
@@ -89,7 +89,7 @@ def get_all_teams():
 @teams_blueprint.route('/teams/<team_id>', methods=['PUT'])
 def update_team(team_id):
     """Update single team details"""
-    data = request.get_json()
+    data = request.form
     response_object = {
         'status': 'fail',
         'message': 'Team does not exist'
@@ -102,7 +102,7 @@ def update_team(team_id):
             if not data:
                 response_object['message'] = 'Invalid payload.'
                 return jsonify(response_object), 400
-            stamNumber = data.get('stamnumber')
+            stamNumber = int(data.get('stamnumber'))
             suffix = data.get('suffix')
             color = data.get('color')
             club = Club.query.filter_by(stamNumber=stamNumber).first()
@@ -167,7 +167,7 @@ def ping_club():
 @teams_blueprint.route('/clubs', methods=['POST'])
 def add_club():
     """Create a club"""
-    post_data = request.get_json()
+    post_data = request.form
     response_object = {
         'status': 'fail',
         'message': 'Invalid payload.'
@@ -235,7 +235,7 @@ def get_all_clubs():
 @teams_blueprint.route('/clubs/<club_id>', methods=['PUT'])
 def update_club(club_id):
     """Update single club details"""
-    data = request.get_json()
+    data = request.form
     response_object = {
         'status': 'fail',
         'message': 'Club does not exist'
